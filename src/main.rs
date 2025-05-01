@@ -1,13 +1,11 @@
-use bevy::{
-    math::bounding::*,
-    prelude::*
-};
+use bevy::{prelude::*};
 use bevy::sprite::{Wireframe2dConfig, Wireframe2dPlugin};
 
 fn main() {
     App::new()
+        .insert_resource(ShootTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
         .add_plugins((DefaultPlugins, Wireframe2dPlugin::default()))
-        .add_systems(Startup, (setup, spawn_player))
+        .add_systems(Startup, (spawn_text, spawn_player))
         .add_systems(Update, toggle_wireframe)
         .add_systems(FixedUpdate, advance_physics)
         .add_systems(
@@ -31,17 +29,6 @@ fn main() {
 /// one unit is one pixel, you can think of this as
 /// "How many pixels per second should the player move?"
 const SHIP_SPEED: f32 = 500.;
-
-pub struct HelloPlugin;
-
-impl Plugin for HelloPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(ShootTimer(Timer::from_seconds(2.0, TimerMode::Repeating)));
-        app.add_systems(Startup, setup);
-        app.add_systems(Update, toggle_wireframe);
-        // app.add_systems(FixedUpdate, move_ship);
-    }
-}
 
 #[derive(Component)]
 enum MoveDirection {
@@ -77,9 +64,6 @@ struct PreviousPhysicalTranslation(Vec3);
 #[derive(Resource)]
 struct ShootTimer(Timer);
 
-#[derive(Resource)]
-struct GreetTimer(Timer);
-
 #[derive(Component, Default)]
 struct Collider;
 
@@ -90,20 +74,8 @@ struct Ship;
 #[derive(Component)]
 struct Name(String);
 
-fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, ) {
-    // commands.spawn(Camera2d);
-    
-    // let ship = meshes.add(Triangle2d::new(Vec2::Y * 50., Vec2::new(-50., -50.), Vec2::new(50., -50.)));
-    // let ship_color = Color::srgb(0.0, 0.0, 1.0);
-
-    // commands.spawn((
-    //     Mesh2d(ship),
-    //     MeshMaterial2d(materials.add(ship_color)),
-    //     Ship,
-    //     Collider,
-    //     Transform::default()
-    // ));
-
+/// Spawn a bit of UI text to explain how to move the player.
+fn spawn_text(mut commands: Commands) {
     commands.spawn((
         Text::new("Press space to toggle wireframes"),
         Node {
@@ -146,6 +118,8 @@ fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>, mut mesh
         Velocity::default(),
         PhysicalTranslation::default(),
         PreviousPhysicalTranslation::default(),
+        Ship,
+        Collider,
     ));
 }
 
@@ -215,26 +189,3 @@ fn interpolate_rendered_transform(
         transform.translation = rendered_translation;
     }
 }
-
-// fn add_people(mut commands: Commands) {
-//     commands.spawn((Person, Name("Elaina Proctor".to_string())));
-//     commands.spawn((Person, Name("Renzo Hume".to_string())));
-//     commands.spawn((Person, Name("Zayna Nieves".to_string())));
-// }
-//
-// fn greet_people(time: Res<Time>, mut timer: ResMut<GreetTimer>, query: Query<&Name, With<Person>>) {
-//     if timer.0.tick(time.delta()).just_finished() {
-//         for name in &query {
-//             println!("hello {}!", name.0);
-//         }
-//     }
-// }
-//
-// fn update_people(mut query: Query<&mut Name, With<Person>>) {
-//     for mut name in &mut query {
-//         if name.0 == "Elaina Proctor" {
-//             name.0 = "Elaina Hume".to_string();
-//             break; // We don't need to change any other names.
-//         }
-//     }
-// }
