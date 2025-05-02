@@ -16,6 +16,7 @@ fn main() {
                 // Note that if we ran it in `Update`, it would be too late, as the physics simulation would already have been advanced.
                 // If we ran this in `FixedUpdate`, it would sometimes not register player input, as that schedule may run zero times per frame.
                 handle_input.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
+                handle_rotation.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
                 // The player's visual representation needs to be updated after the physics simulation has been advanced.
                 // This could be run in `Update`, but if we run it here instead, the systems in `Update`
                 // will be working with the `Transform` that will actually be shown on screen.
@@ -29,6 +30,8 @@ fn main() {
 /// one unit is one pixel, you can think of this as
 /// "How many pixels per second should the player move?"
 const SHIP_SPEED: f32 = 500.;
+/// Radians per Second
+const ROTATION_SPEED: f32 = 3.;
 
 #[derive(Component)]
 enum MoveDirection {
@@ -37,6 +40,14 @@ enum MoveDirection {
     Up,
     Down,
 }
+
+/// Tracks the ships rotation in the physics simulation.
+#[derive(Debug, Component, Clone, Copy, PartialEq, Default, Deref, DerefMut)]
+struct PhysicalRotation(f32);
+
+/// The value [`PhysicalRotation`] had in the last fixed timestep.
+#[derive(Debug, Component, Clone, Copy, PartialEq, Default, Deref, DerefMut)]
+struct PreviousPhysicalRotation(f32);
 
 /// A vector representing the player's input, accumulated over all frames that ran
 /// since the last time the physics simulation was advanced.
@@ -118,6 +129,8 @@ fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>, mut mesh
         Velocity::default(),
         PhysicalTranslation::default(),
         PreviousPhysicalTranslation::default(),
+        PhysicalRotation::default(),
+        PreviousPhysicalRotation::default(),
         Ship,
         Collider,
     ));
@@ -129,28 +142,46 @@ fn toggle_wireframe(mut wireframe_config: ResMut<Wireframe2dConfig>, keyboard: R
     }
 }
 
-fn handle_input(keyboard_input: Res<ButtonInput<KeyCode>>, mut query: Query<(&mut AccumulatedInput, &mut Velocity)>) {
-    let mut direction = 0.0;
-
-    for (mut input, mut velocity) in query.iter_mut() {
+fn handle_input(
+    keyboard_input: Res<ButtonInput<KeyCode>>, 
+    mut query: Query<(&mut AccumulatedInput, &mut Velocity, &PhysicalRotation)>
+) {
+    for (mut input, mut velocity, rotation) in query.iter_mut() {
+        // Handle forward/backward movement with W/S
         if keyboard_input.pressed(KeyCode::KeyW) {
-            input.y += 1.0;
+            // Move forward in the direction the ship is facing
+            let forward = Vec2::new(rotation.0.sin(), rotation.0.cos());
+            input.0 += forward;
         }
         if keyboard_input.pressed(KeyCode::KeyS) {
-            input.y -= 1.0;
+            // Move backward in the direction the ship is facing
+            let backward = Vec2::new(-rotation.0.sin(), -rotation.0.cos());
+            input.0 += backward;
         }
+        
+        // A/D will be handled in a separate rotation system
+        
+        // Normalize and scale the velocity
+        velocity.0 = input.extend(0.0).normalize_or_zero() * SHIP_SPEED;
+    }
+}
+
+fn handle_rotation(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
+    mut query: Query<(&mut PhysicalRotation, &mut PreviousPhysicalRotation)>
+) {
+    for (mut rotation, mut prev_rotation) in query.iter_mut() {
+        prev_rotation.0 = rotation.0;
+        
         if keyboard_input.pressed(KeyCode::KeyA) {
-            input.x -= 1.0;
+            // Rotate counterclockwise
+            rotation.0 += ROTATION_SPEED * time.delta_secs();
         }
         if keyboard_input.pressed(KeyCode::KeyD) {
-            input.x += 1.0;
+            // Rotate clockwise
+            rotation.0 -= ROTATION_SPEED * time.delta_secs();
         }
-
-
-        // Need to normalize and scale because otherwise
-        // diagonal movement would be faster than horizontal or vertical movement.
-        // This effectively averages the accumulated input.
-        velocity.0 = input.extend(0.0).normalize_or_zero() * SHIP_SPEED;
     }
 }
 
@@ -175,17 +206,27 @@ fn interpolate_rendered_transform(
         &mut Transform,
         &PhysicalTranslation,
         &PreviousPhysicalTranslation,
+        &PhysicalRotation,
+        &PreviousPhysicalRotation,
     )>,
 ) {
-    for (mut transform, current_physical_translation, previous_physical_translation) in
+    for (mut transform, current_translation, previous_translation, current_rotation, previous_rotation) in
         query.iter_mut()
     {
-        let previous = previous_physical_translation.0;
-        let current = current_physical_translation.0;
-        // The overstep fraction is a value between 0 and 1 that tells us how far we are between two fixed timesteps.
         let alpha = fixed_time.overstep_fraction();
 
-        let rendered_translation = previous.lerp(current, alpha);
+        // Interpolate position
+        let previous_pos = previous_translation.0;
+        let current_pos = current_translation.0;
+        let rendered_translation = previous_pos.lerp(current_pos, alpha);
+        
+        // Interpolate rotation
+        let previous_rot = previous_rotation.0;
+        let current_rot = current_rotation.0;
+        let rendered_rotation = previous_rot + alpha * (current_rot - previous_rot);
+        
+        // Apply to transform
         transform.translation = rendered_translation;
+        transform.rotation = Quat::from_rotation_z(rendered_rotation);
     }
 }
