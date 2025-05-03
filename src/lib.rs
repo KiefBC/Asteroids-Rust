@@ -19,7 +19,8 @@ impl Plugin for GamePlugin {
         .add_systems(
             RunFixedMainLoop,
             (
-                physics::handle_input.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
+                physics::gather_movement_input.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
+                physics::apply_movement.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
                 physics::handle_rotation.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
                 physics::interpolate_rendered_transform
                     .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
