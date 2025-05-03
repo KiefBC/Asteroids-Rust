@@ -1,3 +1,4 @@
+use crate::physics;
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -6,6 +7,12 @@ pub struct Ship;
 
 #[derive(Component)]
 pub struct Name(pub String);
+
+impl Name {
+    pub fn new(name: &str) -> Self {
+        Name(name.to_string())
+    }
+}
 
 #[derive(Component, Default)]
 pub struct Collider;
@@ -31,16 +38,11 @@ pub fn spawn_player(
 
     commands.spawn(Camera2d);
     commands.spawn((
-        Name("Player".to_string()),
+        Name::new("Player"),
         Mesh2d(ship),
         MeshMaterial2d(materials.add(ship_color)),
-        Transform::from_scale(Vec3::splat(0.3)),
-        super::physics::AccumulatedInput::default(),
-        super::physics::Velocity::default(),
-        super::physics::PhysicalTranslation::default(),
-        super::physics::PreviousPhysicalTranslation::default(),
-        super::physics::PhysicalRotation::default(),
-        super::physics::PreviousPhysicalRotation::default(),
+        Transform::from_scale(Vec3::splat(0.4)), // Scale the ship to fit the screen
+        physics::ShipPhysicsBundle::default(),
         Ship,
         Collider,
     ));

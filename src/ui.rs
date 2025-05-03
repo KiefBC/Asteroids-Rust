@@ -20,7 +20,7 @@ pub fn spawn_text(mut commands: Commands) {
             ..default()
         })
         .with_child((
-            Text::new("Move the player with WASD"),
+            Text::new("Move the player with WASD || Press R to Reset Ship Location"),
             TextFont {
                 font_size: 25.0,
                 ..default()

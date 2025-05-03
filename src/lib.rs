@@ -14,14 +14,14 @@ impl Plugin for GamePlugin {
             TimerMode::Repeating,
         )))
         .add_systems(Startup, (ui::spawn_text, player::spawn_player))
-        .add_systems(Update, ui::toggle_wireframe)
-        .add_systems(FixedUpdate, physics::advance_physics)
+        .add_systems(Update, (physics::reset_ship_position, ui::toggle_wireframe))
+        .add_systems(FixedUpdate, physics::update_physics_state)
         .add_systems(
             RunFixedMainLoop,
             (
                 physics::gather_movement_input.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
                 physics::apply_movement.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
-                physics::handle_rotation.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
+                physics::apply_rotation_input.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
                 physics::interpolate_rendered_transform
                     .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
             ),
