@@ -28,6 +28,7 @@ pub fn spawn_text(mut commands: Commands) {
         ));
 }
 
+/// Toggle the wireframe display when the spacebar is pressed.
 pub fn toggle_wireframe(
     mut wireframe_config: ResMut<bevy::sprite::Wireframe2dConfig>,
     keyboard: Res<ButtonInput<KeyCode>>,

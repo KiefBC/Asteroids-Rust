@@ -1,23 +1,35 @@
 use crate::physics;
 use bevy::prelude::*;
 
+/// Represents a player ship in the game
+/// 
+/// The Ship component is attached to the player entity and requires a Collider component.
 #[derive(Component)]
 #[require(Collider)]
 pub struct Ship;
 
+/// Provides a name for an entity
+/// 
+/// This component can be used to give a human-readable name to any entity in the game.
 #[derive(Component)]
 pub struct Name(pub String);
 
 impl Name {
+    /// Creates a new Name component with the given string
     pub fn new(name: &str) -> Self {
         Name(name.to_string())
     }
 }
 
+/// Marks an entity as collidable
+/// 
+/// Entities with this component can participate in collision detection.
 #[derive(Component, Default)]
 pub struct Collider;
 
 /// Spawn the player sprite and a 2D camera.
+/// 
+/// It sets up the player's ship and camera in the game world.
 pub fn spawn_player(
     mut commands: Commands,
     _asset_server: Res<AssetServer>,
