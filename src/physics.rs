@@ -16,7 +16,7 @@ pub struct PhysicalRotation(pub f32);
 pub struct PreviousPhysicalRotation(pub f32);
 
 /// Discrete movement directions for input handling.
-#[derive(Debug)]
+#[derive(Debug, Component, Clone, Copy, PartialEq)]
 pub enum MoveDirection {
     Up,
     Down,
@@ -41,36 +41,71 @@ pub struct PhysicalTranslation(pub Vec3);
 #[derive(Debug, Component, Clone, Copy, PartialEq, Default, Deref, DerefMut)]
 pub struct PreviousPhysicalTranslation(pub Vec3);
 
-pub fn handle_input(
+/// The function gather_movement_input reads keyboard input to get pressed directions.
+/// It then updates each AccumulatedInput's vector, setting the y value based on Up or Down directions.
+/// Left and Right directions are ignored here, handled elsewhere.
+pub fn gather_movement_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut query: Query<(&mut AccumulatedInput, &mut Velocity, &PhysicalRotation)>,
+    mut query: Query<&mut AccumulatedInput>,
 ) {
-    for (mut input, mut velocity, rotation) in query.iter_mut() {
-        // Transform the ship's local up vector (0,1) by the current rotation,
-        // so forward is always the nose direction.
-        let forward = Vec2::new(-rotation.0.sin(), rotation.0.cos());
+    let directions = get_pressed_directions(&keyboard_input);
 
-        let mut directions = Vec::new();
-        if keyboard_input.pressed(KeyCode::KeyW) {
-            directions.push(MoveDirection::Up);
-        }
-        if keyboard_input.pressed(KeyCode::KeyS) {
-            directions.push(MoveDirection::Down);
-        }
+    for mut input in query.iter_mut() {
+        input.0 = Vec2::ZERO;
 
-        for dir in directions {
+        for dir in directions.iter() {
             match dir {
-                MoveDirection::Up => input.0 += forward,
-                MoveDirection::Down => input.0 -= forward,
+                MoveDirection::Up => input.0.y += 1.0,
+                MoveDirection::Down => input.0.y -= 1.0,
+                MoveDirection::Left => { /* handled in handle_rotation */ }
+                MoveDirection::Right => { /* handled in handle_rotation */ }
                 _ => {}
             }
         }
-
-        // Normalize and scale the velocity
-        velocity.0 = input.extend(0.0).normalize_or_zero() * SHIP_SPEED;
     }
 }
 
+/// Reads keyboard input to get pressed directions.
+fn get_pressed_directions(keyboard_input: &ButtonInput<KeyCode>) -> Vec<MoveDirection> {
+    let mut directions = Vec::new();
+
+    if keyboard_input.pressed(KeyCode::KeyW) {
+        directions.push(MoveDirection::Up);
+    }
+    if keyboard_input.pressed(KeyCode::KeyS) {
+        directions.push(MoveDirection::Down);
+    }
+    if keyboard_input.pressed(KeyCode::KeyA) {
+        directions.push(MoveDirection::Left);
+    }
+    if keyboard_input.pressed(KeyCode::KeyD) {
+        directions.push(MoveDirection::Right);
+    }
+
+    directions
+}
+
+/// Applies the accumulated input to the player's velocity.
+/// It rotates the input vector based on the player's rotation and updates the velocity.
+pub fn apply_movement(
+    mut query: Query<(&AccumulatedInput, &PhysicalRotation, &mut Velocity)>,
+) {
+    for (input, rotation, mut velocity) in query.iter_mut() {
+        let cos_theta = rotation.0.cos();
+        let sin_theta = rotation.0.sin();
+
+        let rotated_input = Vec2::new(
+            input.0.x * cos_theta - input.0.y * sin_theta,
+            input.0.x * sin_theta + input.0.y * cos_theta,
+        );
+
+        let movement = rotated_input.normalize_or_zero();
+        velocity.0 = movement.extend(0.0) * SHIP_SPEED;
+    }
+}
+
+/// Handles rotation based on keyboard input.
+/// It updates the player's rotation and the previous rotation.
 pub fn handle_rotation(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
@@ -97,6 +132,8 @@ pub fn handle_rotation(
     }
 }
 
+/// Advances the physics simulation by one fixed timestep.
+/// It updates the player's position and the previous position.
 pub fn advance_physics(
     fixed_time: Res<Time<Fixed>>,
     mut query: Query<(
@@ -121,6 +158,9 @@ pub fn advance_physics(
     }
 }
 
+/// Interpolates the rendered transform based on the physics simulation.
+/// It updates the player's rendered position and rotation using linear interpolation
+/// between the previous and current physics states.
 pub fn interpolate_rendered_transform(
     fixed_time: Res<Time<Fixed>>,
     mut query: Query<(
