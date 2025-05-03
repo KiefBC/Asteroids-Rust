@@ -1,16 +1,35 @@
+use crate::physics;
 use bevy::prelude::*;
 
+/// Represents a player ship in the game
+/// 
+/// The Ship component is attached to the player entity and requires a Collider component.
 #[derive(Component)]
 #[require(Collider)]
 pub struct Ship;
 
+/// Provides a name for an entity
+/// 
+/// This component can be used to give a human-readable name to any entity in the game.
 #[derive(Component)]
 pub struct Name(pub String);
 
+impl Name {
+    /// Creates a new Name component with the given string
+    pub fn new(name: &str) -> Self {
+        Name(name.to_string())
+    }
+}
+
+/// Marks an entity as collidable
+/// 
+/// Entities with this component can participate in collision detection.
 #[derive(Component, Default)]
 pub struct Collider;
 
 /// Spawn the player sprite and a 2D camera.
+/// 
+/// It sets up the player's ship and camera in the game world.
 pub fn spawn_player(
     mut commands: Commands,
     _asset_server: Res<AssetServer>,
@@ -31,16 +50,11 @@ pub fn spawn_player(
 
     commands.spawn(Camera2d);
     commands.spawn((
-        Name("Player".to_string()),
+        Name::new("Player"),
         Mesh2d(ship),
         MeshMaterial2d(materials.add(ship_color)),
-        Transform::from_scale(Vec3::splat(0.3)),
-        super::physics::AccumulatedInput::default(),
-        super::physics::Velocity::default(),
-        super::physics::PhysicalTranslation::default(),
-        super::physics::PreviousPhysicalTranslation::default(),
-        super::physics::PhysicalRotation::default(),
-        super::physics::PreviousPhysicalRotation::default(),
+        Transform::from_scale(Vec3::splat(0.4)), // Scale the ship to fit the screen
+        physics::ShipPhysicsBundle::default(),
         Ship,
         Collider,
     ));

@@ -20,7 +20,7 @@ pub fn spawn_text(mut commands: Commands) {
             ..default()
         })
         .with_child((
-            Text::new("Move the player with WASD"),
+            Text::new("Move the player with WASD || Press R to Reset Ship Location"),
             TextFont {
                 font_size: 25.0,
                 ..default()
@@ -28,6 +28,7 @@ pub fn spawn_text(mut commands: Commands) {
         ));
 }
 
+/// Toggle the wireframe display when the spacebar is pressed.
 pub fn toggle_wireframe(
     mut wireframe_config: ResMut<bevy::sprite::Wireframe2dConfig>,
     keyboard: Res<ButtonInput<KeyCode>>,
