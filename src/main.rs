@@ -115,13 +115,21 @@ fn spawn_text(mut commands: Commands) {
 
 /// Spawn the player sprite and a 2D camera.
 fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
-    let ship = meshes.add(Triangle2d::new(Vec2::Y * 50., Vec2::new(-50., -50.), Vec2::new(50., -50.)));
+    // Center the mesh on its centroid so rotation pivots around the middle.
+    let nose_point = Vec2::new(0.0, 66.666666);    // Nose above center
+    let bottom_left_point = Vec2::new(-50.0, -33.333332); // Bottom left
+    let bottom_right_point = Vec2::new(50.0, -33.333332);  // Bottom right
+    let center_point = (nose_point + bottom_left_point + bottom_right_point) / 3.0;
+    let ship = meshes.add(Triangle2d::new(
+        nose_point - center_point,
+        bottom_left_point - center_point,
+        bottom_right_point - center_point,
+    ));
     let ship_color = Color::srgb(0.0, 0.0, 1.0);
     
     commands.spawn(Camera2d);
     commands.spawn((
         Name("Player".to_string()),
-        // Sprite::from_image(asset_server.load("branding/icon.png")),
         Mesh2d(ship),
         MeshMaterial2d(materials.add(ship_color)),
         Transform::from_scale(Vec3::splat(0.3)),
@@ -136,7 +144,10 @@ fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>, mut mesh
     ));
 }
 
-fn toggle_wireframe(mut wireframe_config: ResMut<Wireframe2dConfig>, keyboard: Res<ButtonInput<KeyCode>>, ) {
+fn toggle_wireframe(
+    mut wireframe_config: ResMut<Wireframe2dConfig>, 
+    keyboard: Res<ButtonInput<KeyCode>>, 
+) {
     if keyboard.just_pressed(KeyCode::Space) {
         wireframe_config.global = !wireframe_config.global;
     }
@@ -147,19 +158,19 @@ fn handle_input(
     mut query: Query<(&mut AccumulatedInput, &mut Velocity, &PhysicalRotation)>
 ) {
     for (mut input, mut velocity, rotation) in query.iter_mut() {
+        // Transform the ship's local up vector (0,1) by the current rotation,
+        // so forward is always the nose direction.
+        let forward = Vec2::new(-rotation.0.sin(), rotation.0.cos());
         // Handle forward/backward movement with W/S
         if keyboard_input.pressed(KeyCode::KeyW) {
             // Move forward in the direction the ship is facing
-            let forward = Vec2::new(rotation.0.sin(), rotation.0.cos());
+            // For Z-axis rotation, forward is (cos(θ), sin(θ))
             input.0 += forward;
         }
         if keyboard_input.pressed(KeyCode::KeyS) {
             // Move backward in the direction the ship is facing
-            let backward = Vec2::new(-rotation.0.sin(), -rotation.0.cos());
-            input.0 += backward;
+            input.0 -= forward;
         }
-        
-        // A/D will be handled in a separate rotation system
         
         // Normalize and scale the velocity
         velocity.0 = input.extend(0.0).normalize_or_zero() * SHIP_SPEED;
@@ -189,8 +200,19 @@ fn handle_rotation(
 ///
 /// Note that since this runs in `FixedUpdate`, `Res<Time>` would be `Res<Time<Fixed>>` automatically.
 /// We are being explicit here for clarity.
-fn advance_physics(fixed_time: Res<Time<Fixed>>, mut query: Query<(&mut PhysicalTranslation, &mut PreviousPhysicalTranslation, &mut AccumulatedInput, &Velocity,)>) {
-    for (mut current_physical_translation, mut previous_physical_translation, mut input, velocity) in query.iter_mut()
+fn advance_physics(
+    fixed_time: Res<Time<Fixed>>, 
+    mut query: Query<(
+        &mut PhysicalTranslation, 
+        &mut PreviousPhysicalTranslation, 
+        &mut AccumulatedInput, &Velocity,
+    )>
+) {
+    for (
+        mut current_physical_translation, 
+        mut previous_physical_translation, 
+        mut input, velocity
+    ) in query.iter_mut()
     {
         previous_physical_translation.0 = current_physical_translation.0;
         current_physical_translation.0 += velocity.0 * fixed_time.delta_secs();
@@ -210,8 +232,13 @@ fn interpolate_rendered_transform(
         &PreviousPhysicalRotation,
     )>,
 ) {
-    for (mut transform, current_translation, previous_translation, current_rotation, previous_rotation) in
-        query.iter_mut()
+    for (
+        mut transform, 
+        current_translation, 
+        previous_translation, 
+        current_rotation, 
+        previous_rotation
+    ) in query.iter_mut()
     {
         let alpha = fixed_time.overstep_fraction();
 
