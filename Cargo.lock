@@ -192,6 +192,9 @@ name = "asteroids_rust"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "tracing",
+ "tracing-log",
+ "tracing-subscriber",
 ]
 
 [[package]]
