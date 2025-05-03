@@ -1,7 +1,11 @@
 use bevy::prelude::*;
-use crate::player::ROTATION_SPEED;
 
+/// Since Bevy's default 2D camera setup is scaled such that
+/// one unit is one pixel, you can think of this as
+/// "How many pixels per second should the player move?"
 pub const SHIP_SPEED: f32 = 500.;
+/// Radians per Second
+pub const ROTATION_SPEED: f32 = 3.;
 
 /// Tracks the ships rotation in the physics simulation.
 #[derive(Debug, Component, Clone, Copy, PartialEq, Default, Deref, DerefMut)]
@@ -10,6 +14,15 @@ pub struct PhysicalRotation(pub f32);
 /// The value [`PhysicalRotation`] had in the last fixed timestep.
 #[derive(Debug, Component, Clone, Copy, PartialEq, Default, Deref, DerefMut)]
 pub struct PreviousPhysicalRotation(pub f32);
+
+/// Discrete movement directions for input handling.
+#[derive(Debug)]
+pub enum MoveDirection {
+    Up,
+    Down,
+    Left,
+    Right,
+}
 
 /// A vector representing the player's input, accumulated over all frames that ran
 /// since the last time the physics simulation was advanced.
@@ -36,15 +49,21 @@ pub fn handle_input(
         // Transform the ship's local up vector (0,1) by the current rotation,
         // so forward is always the nose direction.
         let forward = Vec2::new(-rotation.0.sin(), rotation.0.cos());
-        // Handle forward/backward movement with W/S
+        
+        let mut directions = Vec::new();
         if keyboard_input.pressed(KeyCode::KeyW) {
-            // Move forward in the direction the ship is facing
-            // For Z-axis rotation, forward is (cos(θ), sin(θ))
-            input.0 += forward;
+            directions.push(MoveDirection::Up);
         }
         if keyboard_input.pressed(KeyCode::KeyS) {
-            // Move backward in the direction the ship is facing
-            input.0 -= forward;
+            directions.push(MoveDirection::Down);
+        }
+
+        for dir in directions {
+            match dir {
+                MoveDirection::Up => input.0 += forward,
+                MoveDirection::Down => input.0 -= forward,
+                _ => {}
+            }
         }
 
         // Normalize and scale the velocity
@@ -58,15 +77,22 @@ pub fn handle_rotation(
     mut query: Query<(&mut PhysicalRotation, &mut PreviousPhysicalRotation)>
 ) {
     for (mut rotation, mut prev_rotation) in query.iter_mut() {
-        prev_rotation.0 = rotation.0;
-
+        let mut directions = Vec::new();
         if keyboard_input.pressed(KeyCode::KeyA) {
-            // Rotate counterclockwise
-            rotation.0 += ROTATION_SPEED * time.delta_secs();
+            directions.push(MoveDirection::Left);
         }
         if keyboard_input.pressed(KeyCode::KeyD) {
-            // Rotate clockwise
-            rotation.0 -= ROTATION_SPEED * time.delta_secs();
+            directions.push(MoveDirection::Right);
+        }
+
+        prev_rotation.0 = rotation.0;
+        
+        for dir in directions {
+            match dir {
+                MoveDirection::Left => rotation.0 += ROTATION_SPEED * time.delta_secs(),
+                MoveDirection::Right => rotation.0 -= ROTATION_SPEED * time.delta_secs(),
+                _ => {}
+            }
         }
     }
 }

@@ -1,20 +1,5 @@
 use bevy::prelude::*;
 
-/// Since Bevy's default 2D camera setup is scaled such that
-/// one unit is one pixel, you can think of this as
-/// "How many pixels per second should the player move?"
-pub const SHIP_SPEED: f32 = 500.;
-/// Radians per Second
-pub const ROTATION_SPEED: f32 = 3.;
-
-#[derive(Component)]
-pub enum MoveDirection {
-    Left,
-    Right,
-    Up,
-    Down,
-}
-
 #[derive(Component)]
 #[require(Collider)]
 pub struct Ship;
@@ -24,9 +9,6 @@ pub struct Name(pub String);
 
 #[derive(Component, Default)]
 pub struct Collider;
-
-#[derive(Resource)]
-pub struct ShootTimer(pub Timer);
 
 /// Spawn the player sprite and a 2D camera.
 pub fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {

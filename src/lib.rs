@@ -2,7 +2,6 @@ pub mod player;
 pub mod physics;
 pub mod ui;
 pub mod weapons;
-// Future modules: enemies, weapons, etc.
 
 use bevy::prelude::*;
 
@@ -10,7 +9,7 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(player::ShootTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
+        app.insert_resource(weapons::ShootTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
             .add_systems(Startup, (ui::spawn_text, player::spawn_player))
             .add_systems(Update, ui::toggle_wireframe)
             .add_systems(FixedUpdate, physics::advance_physics)
