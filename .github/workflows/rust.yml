@@ -17,7 +17,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install ALSA development packages
+<<<<<<< HEAD
       run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config libudev-dev
+=======
+      run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config
+>>>>>>> da58bf7 (Update rust.yml)
     - name: Build
       run: cargo build --verbose
     - name: Run tests
