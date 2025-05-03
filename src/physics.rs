@@ -42,14 +42,14 @@ pub struct PhysicalTranslation(pub Vec3);
 pub struct PreviousPhysicalTranslation(pub Vec3);
 
 pub fn handle_input(
-    keyboard_input: Res<ButtonInput<KeyCode>>, 
-    mut query: Query<(&mut AccumulatedInput, &mut Velocity, &PhysicalRotation)>
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut query: Query<(&mut AccumulatedInput, &mut Velocity, &PhysicalRotation)>,
 ) {
     for (mut input, mut velocity, rotation) in query.iter_mut() {
         // Transform the ship's local up vector (0,1) by the current rotation,
         // so forward is always the nose direction.
         let forward = Vec2::new(-rotation.0.sin(), rotation.0.cos());
-        
+
         let mut directions = Vec::new();
         if keyboard_input.pressed(KeyCode::KeyW) {
             directions.push(MoveDirection::Up);
@@ -74,7 +74,7 @@ pub fn handle_input(
 pub fn handle_rotation(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
-    mut query: Query<(&mut PhysicalRotation, &mut PreviousPhysicalRotation)>
+    mut query: Query<(&mut PhysicalRotation, &mut PreviousPhysicalRotation)>,
 ) {
     for (mut rotation, mut prev_rotation) in query.iter_mut() {
         let mut directions = Vec::new();
@@ -86,7 +86,7 @@ pub fn handle_rotation(
         }
 
         prev_rotation.0 = rotation.0;
-        
+
         for dir in directions {
             match dir {
                 MoveDirection::Left => rotation.0 += ROTATION_SPEED * time.delta_secs(),
@@ -98,13 +98,19 @@ pub fn handle_rotation(
 }
 
 pub fn advance_physics(
-    fixed_time: Res<Time<Fixed>>, 
-    mut query: Query<(&mut PhysicalTranslation, &mut PreviousPhysicalTranslation, &mut AccumulatedInput, &Velocity)>
+    fixed_time: Res<Time<Fixed>>,
+    mut query: Query<(
+        &mut PhysicalTranslation,
+        &mut PreviousPhysicalTranslation,
+        &mut AccumulatedInput,
+        &Velocity,
+    )>,
 ) {
     for (
         mut current_physical_translation,
         mut previous_physical_translation,
-        mut input, velocity
+        mut input,
+        velocity,
     ) in query.iter_mut()
     {
         previous_physical_translation.0 = current_physical_translation.0;
@@ -117,14 +123,20 @@ pub fn advance_physics(
 
 pub fn interpolate_rendered_transform(
     fixed_time: Res<Time<Fixed>>,
-    mut query: Query<(&mut Transform, &PhysicalTranslation, &PreviousPhysicalTranslation, &PhysicalRotation, &PreviousPhysicalRotation)>
+    mut query: Query<(
+        &mut Transform,
+        &PhysicalTranslation,
+        &PreviousPhysicalTranslation,
+        &PhysicalRotation,
+        &PreviousPhysicalRotation,
+    )>,
 ) {
     for (
         mut transform,
         current_translation,
         previous_translation,
         current_rotation,
-        previous_rotation
+        previous_rotation,
     ) in query.iter_mut()
     {
         let alpha = fixed_time.overstep_fraction();

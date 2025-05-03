@@ -1,5 +1,5 @@
-use bevy::{prelude::*, sprite::Wireframe2dPlugin};
 use asteroids_rust::GamePlugin;
+use bevy::{prelude::*, sprite::Wireframe2dPlugin};
 
 fn main() {
     App::new()

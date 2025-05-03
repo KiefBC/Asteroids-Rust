@@ -29,8 +29,8 @@ pub fn spawn_text(mut commands: Commands) {
 }
 
 pub fn toggle_wireframe(
-    mut wireframe_config: ResMut<bevy::sprite::Wireframe2dConfig>, 
-    keyboard: Res<ButtonInput<KeyCode>>, 
+    mut wireframe_config: ResMut<bevy::sprite::Wireframe2dConfig>,
+    keyboard: Res<ButtonInput<KeyCode>>,
 ) {
     if keyboard.just_pressed(KeyCode::Space) {
         wireframe_config.global = !wireframe_config.global;
