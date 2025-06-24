@@ -13,6 +13,10 @@
 //! The game is structured as a Bevy plugin (`GamePlugin`) that can be added to a Bevy app.
 //! It sets up all necessary systems and resources for the game to function.
 
+/// Asteroids module containing asteroid entities, spawning, and collision systems
+pub mod asteroids;
+/// Particles module containing particle effects and explosion systems
+pub mod particles;
 /// Physics module containing movement, rotation, and collision components and systems
 pub mod physics;
 /// Player module containing player ship components and spawning systems
@@ -46,18 +50,30 @@ impl Plugin for GamePlugin {
             2.0,
             TimerMode::Repeating,
         )))
+        .insert_resource(weapons::ShootCooldown::default())
+        .insert_resource(asteroids::AsteroidSpawnTimer::default())
+        .insert_resource(asteroids::AsteroidCount::default())
         .add_systems(Startup, (ui::spawn_text, player::spawn_player))
-        .add_systems(Update, (physics::reset_ship_position, ui::toggle_wireframe))
+        .add_systems(Update, (
+            physics::reset_ship_position, 
+            physics::wrap_screen_position, 
+            ui::toggle_wireframe,
+            weapons::shoot_system,
+            weapons::bullet_lifetime_system,
+            asteroids::spawn_asteroid_system,
+            asteroids::wrap_asteroids,
+            asteroids::bullet_asteroid_collision_system,
+            particles::update_particles,
+        ))
         .add_systems(FixedUpdate, physics::update_physics_state)
         .add_systems(
-            RunFixedMainLoop,
+            PreUpdate,
             (
-                physics::gather_movement_input.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
-                physics::apply_movement.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
-                physics::apply_rotation_input.in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
-                physics::interpolate_rendered_transform
-                    .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
+                physics::gather_movement_input,
+                physics::apply_movement,
+                physics::apply_rotation_input,
             ),
-        );
+        )
+        .add_systems(PostUpdate, physics::interpolate_rendered_transform);
     }
 }

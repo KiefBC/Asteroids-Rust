@@ -1,9 +1,22 @@
 use bevy::prelude::*;
 
-/// Ship movement speed in pixels per second.
-/// Since Bevy's default 2D camera setup scales one unit to one pixel,
-/// this directly controls how fast the ship moves across the screen.
-pub const SHIP_SPEED: f32 = 500.;
+/// Ship thrust force applied when accelerating.
+/// This is the force applied to the ship when thrust input is detected.
+pub const THRUST_FORCE: f32 = 800.0;
+
+/// Maximum ship velocity in pixels per second.
+/// This caps the ship's maximum speed to prevent runaway acceleration.
+pub const MAX_VELOCITY: f32 = 600.0;
+
+/// Linear dampening factor for space-like physics.
+/// This simulates drag/friction in space. Values closer to 1.0 mean less dampening.
+/// 0.98 means the ship retains 98% of its velocity each second, losing 2% to dampening.
+pub const LINEAR_DAMPENING: f32 = 0.98;
+
+/// Screen boundaries for wrapping
+pub const SCREEN_WIDTH: f32 = 1280.0;
+pub const SCREEN_HEIGHT: f32 = 720.0;
+pub const WRAP_MARGIN: f32 = 50.0; // How far off-screen before wrapping
 
 /// Ship rotation speed in radians per second.
 /// Controls how quickly the ship can turn left or right.
@@ -154,34 +167,42 @@ fn get_pressed_directions(keyboard_input: &ButtonInput<KeyCode>) -> Vec<MoveDire
     directions
 }
 
-/// Converts accumulated input into velocity.
+/// Applies thrust force based on input with space-like physics.
 /// 
 /// This system:
 /// 1. Gets the accumulated input vector
-/// 2. Rotates the input based on the ship's current rotation
-/// 3. Normalizes the result to ensure consistent speed in all directions
-/// 4. Updates the ship's velocity component
+/// 2. Calculates thrust direction based on ship's rotation
+/// 3. Applies thrust force to current velocity (acceleration)
+/// 4. Clamps velocity to maximum speed
+/// 5. Applies linear dampening for realistic space movement
 pub fn apply_movement(
+    fixed_time: Res<Time<Fixed>>,
     mut query: Query<(&MovementInputAccumulator, &PhysicalRotation, &mut Velocity)>,
 ) {
+    let dt = fixed_time.delta_seconds();
+    
     for (input_accumulator, rotation, mut velocity) in query.iter_mut() {
         let input = input_accumulator.get();
-        let cos = rotation.0.cos();
-        let sin = rotation.0.sin();
-
-        // Rotate the input vector to match the ship's orientation
-        // The Math is based on the rotation matrix for 2D vectors
-        // [cos(θ) -sin(θ)] [x] = [x*cos(θ) - y*sin(θ)]
-        // [sin(θ)  cos(θ)] [y] = [x*sin(θ) + y*cos(θ)]
-        // This aligns the input with the ship's current direction
-        let rotated_input = Vec2::new(
-            input.x * cos - input.y * sin,
-            input.x * sin + input.y * cos,
-        );
-
-        // Normalize to ensure consistent speed in all directions
-        let movement = rotated_input.normalize_or_zero();
-        velocity.0 = movement.extend(0.0) * SHIP_SPEED;
+        
+        // Calculate thrust direction based on ship's forward vector
+        let forward = Vec2::new(-rotation.0.sin(), rotation.0.cos());
+        
+        // Apply thrust force when input is detected
+        if input.length() > 0.0 {
+            // Thrust is applied in the ship's forward direction
+            let thrust = forward * input.y * THRUST_FORCE * dt;
+            velocity.0 += thrust.extend(0.0);
+        }
+        
+        // Apply linear dampening to simulate space drag
+        let dampening_factor = LINEAR_DAMPENING.powf(dt);
+        velocity.0 *= dampening_factor;
+        
+        // Clamp velocity to maximum speed
+        let current_speed = velocity.0.length();
+        if current_speed > MAX_VELOCITY {
+            velocity.0 = velocity.0.normalize() * MAX_VELOCITY;
+        }
     }
 }
 
@@ -191,30 +212,22 @@ pub fn apply_movement(
 /// 1. Detects left/right key presses
 /// 2. Updates the ship's rotation based on input and elapsed time
 /// 3. Stores the previous rotation for interpolation
+/// 4. Rotation is immediate and not affected by dampening
 pub fn apply_rotation_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
     mut query: Query<(&mut PhysicalRotation, &mut PreviousPhysicalRotation)>,
 ) {
     for (mut rotation, mut prev_rotation) in query.iter_mut() {
-        let mut directions = Vec::new();
-        if keyboard_input.pressed(KeyCode::KeyA) {
-            directions.push(MoveDirection::Left);
-        }
-        if keyboard_input.pressed(KeyCode::KeyD) {
-            directions.push(MoveDirection::Right);
-        }
-
         // Store current rotation for interpolation
         prev_rotation.0 = rotation.0;
 
-        // Apply rotation based on input
-        for dir in directions {
-            match dir {
-                MoveDirection::Left => rotation.0 += ROTATION_SPEED * time.delta_secs(),
-                MoveDirection::Right => rotation.0 -= ROTATION_SPEED * time.delta_secs(),
-                _ => {}
-            }
+        // Apply rotation based on input - immediate response, no dampening
+        if keyboard_input.pressed(KeyCode::KeyA) {
+            rotation.0 += ROTATION_SPEED * time.delta_seconds();
+        }
+        if keyboard_input.pressed(KeyCode::KeyD) {
+            rotation.0 -= ROTATION_SPEED * time.delta_seconds();
         }
     }
 }
@@ -247,7 +260,7 @@ pub fn update_physics_state(
         previous_physical_translation.0 = current_physical_translation.0;
         
         // Update position based on velocity
-        current_physical_translation.0 += velocity.0 * fixed_time.delta_secs();
+        current_physical_translation.0 += velocity.0 * fixed_time.delta_seconds();
 
         // Reset input for next frame
         input_accumulator.reset();
@@ -297,6 +310,39 @@ pub fn interpolate_rendered_transform(
         // Apply interpolated values to the rendered transform
         transform.translation = rendered_translation;
         transform.rotation = Quat::from_rotation_z(rendered_rotation);
+    }
+}
+
+/// Wraps the ship's position when it goes off-screen.
+/// 
+/// This system:
+/// 1. Checks if the ship has moved beyond screen boundaries
+/// 2. Wraps the ship to the opposite side of the screen
+/// 3. Maintains velocity and rotation during wrapping
+pub fn wrap_screen_position(
+    mut query: Query<(&mut PhysicalTranslation, &mut PreviousPhysicalTranslation)>,
+) {
+    for (mut translation, mut prev_translation) in query.iter_mut() {
+        let half_width = SCREEN_WIDTH / 2.0;
+        let half_height = SCREEN_HEIGHT / 2.0;
+        
+        // Wrap horizontally
+        if translation.0.x > half_width + WRAP_MARGIN {
+            translation.0.x = -half_width - WRAP_MARGIN;
+            prev_translation.0.x = translation.0.x;
+        } else if translation.0.x < -half_width - WRAP_MARGIN {
+            translation.0.x = half_width + WRAP_MARGIN;
+            prev_translation.0.x = translation.0.x;
+        }
+        
+        // Wrap vertically
+        if translation.0.y > half_height + WRAP_MARGIN {
+            translation.0.y = -half_height - WRAP_MARGIN;
+            prev_translation.0.y = translation.0.y;
+        } else if translation.0.y < -half_height - WRAP_MARGIN {
+            translation.0.y = half_height + WRAP_MARGIN;
+            prev_translation.0.y = translation.0.y;
+        }
     }
 }
 
