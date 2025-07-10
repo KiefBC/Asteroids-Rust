@@ -121,6 +121,21 @@ pub fn update_particles(
     }
 }
 
+/// Spawns explosion and spark particles to simulate an asteroid destruction effect.
+///
+/// The number and color of particles are determined by the asteroid's size, producing an orange/yellow explosion and bright yellow-white sparks at the given position.
+///
+/// # Examples
+///
+/// ```
+/// spawn_asteroid_destruction_particles(
+///     &mut commands,
+///     &mut meshes,
+///     &mut materials,
+///     Vec2::new(100.0, 200.0),
+///     30.0,
+/// );
+/// ```
 pub fn spawn_asteroid_destruction_particles(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -153,7 +168,16 @@ pub fn spawn_asteroid_destruction_particles(
     );
 }
 
-/// Spawns a small burst of particles to simulate engine thrust.
+/// Spawns a single particle to simulate an engine thrust burst at the given position and direction.
+///
+/// The particle has a randomized size and lifetime, and its velocity is set opposite to the provided direction with slight random variance. The particle is colored orange and fades out over its lifetime.
+///
+/// # Examples
+///
+/// ```
+/// // Spawns an engine thrust particle at (100.0, 200.0) moving opposite to (0.0, 1.0)
+/// spawn_engine_particle(&mut commands, &mut meshes, &mut materials, Vec2::new(100.0, 200.0), Vec2::new(0.0, 1.0));
+/// ```
 pub fn spawn_engine_particle(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -188,7 +212,16 @@ pub fn spawn_engine_particle(
     ));
 }
 
-/// System that emits engine particles when the ship is applying thrust.
+/// Emits engine thrust particles for entities applying forward thrust.
+///
+/// For each entity with movement input, transform, and rotation, spawns a particle effect behind the entity when forward thrust is applied. The particle is emitted in the direction opposite to the entity's forward vector, simulating engine exhaust.
+///
+/// # Examples
+///
+/// ```
+/// // This system should be added to your Bevy app's schedule:
+/// app.add_system(engine_particle_system);
+/// ```
 pub fn engine_particle_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,

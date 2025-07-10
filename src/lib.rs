@@ -40,11 +40,9 @@ use bevy::prelude::*;
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
-    /// Builds the plugin by adding all necessary systems and resources to the app
-    /// 
-    /// # Arguments
-    /// 
-    /// * `app` - The Bevy app to add systems and resources to
+    /// Configures the Bevy app with all systems and resources required for the Asteroids game.
+    ///
+    /// This method registers startup, update, fixed update, pre-update, and post-update systems, and inserts resources for timers, cooldowns, and entity management. It ensures that game logic, physics, UI, particle effects, and entity spawning are properly initialized and executed within the Bevy app lifecycle.
     fn build(&self, app: &mut App) {
         app.insert_resource(weapons::ShootTimer(Timer::from_seconds(
             2.0,
