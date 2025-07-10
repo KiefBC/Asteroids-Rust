@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use rand::prelude::*;
 
+use crate::physics::{MovementInputAccumulator, PhysicalRotation};
+
 #[derive(Component)]
 pub struct Particle {
     pub lifetime: Timer,
@@ -149,4 +151,62 @@ pub fn spawn_asteroid_destruction_particles(
         sparks_count,
         spark_color,
     );
+}
+
+/// Spawns a small burst of particles to simulate engine thrust.
+pub fn spawn_engine_particle(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
+    position: Vec2,
+    direction: Vec2,
+) {
+    let mut rng = thread_rng();
+
+    let particle_size = rng.gen_range(1.0..3.0);
+    let lifetime = rng.gen_range(0.2..0.4);
+
+    // Particles travel opposite the thrust direction with slight variation
+    let velocity_variance = Vec2::new(
+        rng.gen_range(-0.2..0.2),
+        rng.gen_range(-0.2..0.2),
+    );
+    let velocity = (direction + velocity_variance) * rng.gen_range(60.0..100.0);
+
+    let particle_mesh = meshes.add(Circle::new(particle_size));
+    let particle_material = materials.add(Color::srgb(1.0, 0.5, 0.2));
+
+    commands.spawn((
+        Particle::new(lifetime, particle_size),
+        ParticleVelocity::new(velocity, 2.0),
+        ColorMesh2dBundle {
+            mesh: particle_mesh.into(),
+            material: particle_material,
+            transform: Transform::from_translation(position.extend(0.1)),
+            ..default()
+        },
+    ));
+}
+
+/// System that emits engine particles when the ship is applying thrust.
+pub fn engine_particle_system(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    query: Query<(&MovementInputAccumulator, &Transform, &PhysicalRotation)>,
+) {
+    for (input_acc, transform, rotation) in query.iter() {
+        let input = input_acc.get();
+        if input.y > 0.0 {
+            let forward = Vec2::new(-rotation.0.sin(), rotation.0.cos());
+            let spawn_pos = transform.translation.truncate() - forward * 20.0;
+            spawn_engine_particle(
+                &mut commands,
+                &mut meshes,
+                &mut materials,
+                spawn_pos,
+                -forward,
+            );
+        }
+    }
 }
