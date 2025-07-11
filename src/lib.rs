@@ -40,11 +40,9 @@ use bevy::prelude::*;
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
-    /// Builds the plugin by adding all necessary systems and resources to the app
-    /// 
-    /// # Arguments
-    /// 
-    /// * `app` - The Bevy app to add systems and resources to
+    /// Configures the game plugin by registering all core systems and resources with the Bevy app.
+    ///
+    /// This method sets up timers, spawns initial entities, and adds systems for physics, UI, weapons, asteroids, and particle effects across the appropriate Bevy app stages. It ensures the game's main loop and entity behaviors are properly integrated into the engine lifecycle.
     fn build(&self, app: &mut App) {
         app.insert_resource(weapons::ShootTimer(Timer::from_seconds(
             2.0,

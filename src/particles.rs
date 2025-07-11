@@ -121,6 +121,21 @@ pub fn update_particles(
     }
 }
 
+/// Spawns explosion and spark particles at an asteroid's position to simulate its destruction.
+///
+/// The number and appearance of particles are scaled based on the asteroid's size, producing both orange/yellow explosion particles and bright spark particles at the specified position. This function is typically called when an asteroid is destroyed to create a visually impactful effect.
+///
+/// # Examples
+///
+/// ```
+/// spawn_asteroid_destruction_particles(
+///     &mut commands,
+///     &mut meshes,
+///     &mut materials,
+///     Vec2::new(100.0, 200.0),
+///     30.0,
+/// );
+/// ```
 pub fn spawn_asteroid_destruction_particles(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -153,7 +168,16 @@ pub fn spawn_asteroid_destruction_particles(
     );
 }
 
-/// Spawns a small burst of particles to simulate engine thrust.
+/// Spawns a single particle to simulate engine thrust at a given position and direction.
+///
+/// The particle has randomized size, lifetime, and velocity (opposite to the provided direction with slight variance), and uses a fixed orange color. Intended for use in engine exhaust effects.
+///
+/// # Examples
+///
+/// ```
+/// // Spawns an engine thrust particle at (0.0, 0.0) moving left
+/// spawn_engine_particle(&mut commands, &mut meshes, &mut materials, Vec2::ZERO, Vec2::NEG_X);
+/// ```
 pub fn spawn_engine_particle(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -188,7 +212,16 @@ pub fn spawn_engine_particle(
     ));
 }
 
-/// System that emits engine particles when the ship is applying thrust.
+/// Emits engine thrust particles for entities applying forward thrust.
+///
+/// For each entity with movement input, transform, and rotation, this system checks if forward thrust is active and spawns a particle effect behind the entity to simulate engine exhaust. The particle is emitted opposite to the entity's facing direction and offset from its position.
+///
+/// # Examples
+///
+/// ```
+/// // Add the system to your Bevy app:
+/// app.add_system(engine_particle_system);
+/// ```
 pub fn engine_particle_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,

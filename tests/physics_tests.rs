@@ -12,6 +12,9 @@ use tracing_subscriber::fmt;
 
 static INIT: Once = Once::new();
 
+/// Initializes global tracing and logging for the application.
+///
+/// Sets up a tracing subscriber with INFO-level formatting and installs a log tracer to route standard log messages through the tracing system. Ensures that initialization occurs only once, even if called multiple times.
 pub fn init_tracing() {
     INIT.call_once(|| {
         // Install the LogTracer to convert logs from `log` crate to `tracing`
@@ -26,8 +29,9 @@ pub fn init_tracing() {
     });
 }
 
-/// The main test function that runs all other tests in order
-#[test]
+/// Runs all physics and particle system tests sequentially to ensure correct behavior.
+///
+/// This function initializes tracing and executes all test cases in a specific order to verify forward vector calculation, movement clamping, and engine particle spawning.
 fn run_all_tests_in_order() {
     init_tracing();
 
@@ -36,7 +40,7 @@ fn run_all_tests_in_order() {
     test_engine_particle_spawn();
 }
 
-/// Tests the calculation of the forward vector based on rotation
+/// Verifies that the forward vector calculation from a zero rotation produces the expected unit vector along the Y axis.
 fn test_forward_vector_calculation() {
     init_tracing();
 
@@ -49,7 +53,16 @@ fn test_forward_vector_calculation() {
     assert_eq!(forward, Vec2::new(0.0, 1.0));
 }
 
-/// Tests that applying thrust accelerates the ship and clamps to the max speed
+/// Verifies that applying thrust to an entity accelerates it and clamps its velocity to the maximum allowed speed.
+///
+/// This test sets up a Bevy ECS world with an entity representing a ship, applies movement input, advances the simulation by one second, runs the movement system, and asserts that the resulting velocity does not exceed the defined maximum velocity constant.
+///
+/// # Examples
+///
+/// ```
+/// test_apply_movement_clamp();
+/// // Passes if the entity's velocity is clamped to MAX_VELOCITY
+/// ```
 fn test_apply_movement_clamp() {
     init_tracing();
 
@@ -75,7 +88,17 @@ fn test_apply_movement_clamp() {
     assert!((velocity.y - expected).abs() < f32::EPSILON);
 }
 
-/// Tests that engine particles spawn behind the ship when thrusting
+/// Verifies that the engine particle system spawns particles behind the ship when thrust input is applied.
+///
+/// This test sets up a Bevy ECS world with a ship entity receiving forward thrust, runs the engine particle system,
+/// and asserts that a particle is spawned at the expected offset behind the ship.
+///
+/// # Examples
+///
+/// ```
+/// test_engine_particle_spawn();
+/// // Passes if the particle spawns at (0.0, -20.0) relative to the ship.
+/// ```
 fn test_engine_particle_spawn() {
     init_tracing();
 
