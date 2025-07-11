@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use rand::prelude::*;
 
-use crate::physics::{MovementInputAccumulator, PhysicalRotation};
+use crate::physics::{InputAccumulator, MovementInputAccumulator, PhysicalRotation};
 
 #[derive(Component)]
 pub struct Particle {
