@@ -64,6 +64,7 @@ impl Plugin for GamePlugin {
             asteroids::wrap_asteroids,
             asteroids::bullet_asteroid_collision_system,
             particles::update_particles,
+            particles::engine_particle_system,
         ))
         .add_systems(FixedUpdate, physics::update_physics_state)
         .add_systems(
