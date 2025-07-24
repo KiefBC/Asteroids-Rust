@@ -1,18 +1,7 @@
 use bevy::prelude::*;
 use rand::prelude::*;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
 use crate::physics::{InputAccumulator, MovementInputAccumulator, PhysicalRotation};
-
->>>>>>> b60c61a (engine particle effects, shooting physics, asteroid explosion, wrap around ship movement)
-=======
-use crate::physics::{InputAccumulator, MovementInputAccumulator, PhysicalRotation};
-
-=======
->>>>>>> d0cb66e (shooting added, particle effects on asteroid destruction, wrap around movements)
->>>>>>> 59246f1 (shooting added, particle effects on asteroid destruction, wrap around movements)
 #[derive(Component)]
 pub struct Particle {
     pub lifetime: Timer,
@@ -161,12 +150,6 @@ pub fn spawn_asteroid_destruction_particles(
         sparks_count,
         spark_color,
     );
-<<<<<<< HEAD
-<<<<<<< HEAD
-}
-=======
-=======
->>>>>>> 59246f1 (shooting added, particle effects on asteroid destruction, wrap around movements)
 }
 
 /// Spawns a small burst of particles to simulate engine thrust.
@@ -226,10 +209,3 @@ pub fn engine_particle_system(
         }
     }
 }
-<<<<<<< HEAD
->>>>>>> b60c61a (engine particle effects, shooting physics, asteroid explosion, wrap around ship movement)
-=======
-=======
-}
->>>>>>> d0cb66e (shooting added, particle effects on asteroid destruction, wrap around movements)
->>>>>>> 59246f1 (shooting added, particle effects on asteroid destruction, wrap around movements)
