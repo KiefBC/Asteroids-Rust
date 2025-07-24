@@ -64,6 +64,10 @@ impl Plugin for GamePlugin {
             asteroids::wrap_asteroids,
             asteroids::bullet_asteroid_collision_system,
             particles::update_particles,
+<<<<<<< HEAD
+=======
+            particles::engine_particle_system,
+>>>>>>> b60c61a (engine particle effects, shooting physics, asteroid explosion, wrap around ship movement)
         ))
         .add_systems(FixedUpdate, physics::update_physics_state)
         .add_systems(
